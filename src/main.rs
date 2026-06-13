@@ -44,7 +44,7 @@ fn main() -> Result<()> {
     let game_object_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
 
     let l1_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
-    let l1_update = &ViewportUpdate{dx: 5.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
+    let l1_update = &ViewportUpdate{dx: 0.5, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
     let l2_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0};
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
@@ -52,14 +52,12 @@ fn main() -> Result<()> {
     let game_object = &mut GameObject{ x: -280.0, y: -10.0};
 
     let mut viewport_updated = Instant::now();  
-    const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
+    const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
     let mut obj_updated = Instant::now();  
     const OBJECT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
 
     ratatui::run(|terminal| loop {  
-
-        // Update state between draw calls  
         if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
             update_viewport(l1_viewport, l1_update); 
             update_viewport(l2_viewport, l2_update);
@@ -99,7 +97,7 @@ fn main() -> Result<()> {
     })  
 }  
   
-fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &Viewport, layer_one_viewport: &Viewport, layer_two_viewport: &mut Viewport) {  
+fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport, l1_viewport: &Viewport, l2_viewport: &mut Viewport) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -112,92 +110,38 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &Viewport
   
     frame.render_widget(title.centered(), top);  
 
-    render_layer_one(frame, layer_one_viewport, area);  
-    render_layer_two(frame, layer_two_viewport, area);
-    render_main_canvas(frame, game_object, game_view_port, area);  
+    render_layer_one(frame, l1_viewport, area);  
+    render_layer_two(frame, l2_viewport, area);
+    render_main_canvas(frame, game_object, game_viewport, area);  
 } 
 
-fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect){
+fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect) {
     let background_canvas = Canvas::default()
         .x_bounds([layer_two_viewport.x0, layer_two_viewport.x1])
         .y_bounds([layer_two_viewport.y0, layer_two_viewport.y1])
-        .paint(|ctx|{
+        .paint(|ctx| {
             ctx.layer();
-            ctx.draw(&Rectangle{
-                x: -290.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            }); 
-            ctx.draw(&Rectangle{
-                x: -140.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 10.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 160.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 310.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 460.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 610.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 760.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 910.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
-            ctx.draw(&Rectangle{
-                x: 1060.0, 
-                y: -140.0, 
-                width: 150.0, 
-                height: 120.0, 
-                color: Color::White
-            });
+
+            let start_x = -290.0;
+            let y = -140.0;
+            let width = 150.0;
+            let height = 120.0;
+            let count = 10;
+
+            for i in 0..count {
+                ctx.draw(&Rectangle {
+                    x: start_x + (i as f64 * width),
+                    y,
+                    width,
+                    height,
+                    color: Color::White,
+                });
+            }
         });
 
     frame.render_widget(background_canvas, area);
 }
-  
+
 
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
     let background_canvas = Canvas::default()
@@ -242,13 +186,12 @@ fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_v
                 y2: -20.0, 
                 color: Color::DarkGray
             });
-            // ctx.layer();
             ctx.draw(&Rectangle {  
                 x: game_object.x, 
                 y: game_object.y,  
                 width: 10.0,  
                 height: 10.0,  
-                color: Color::White,  
+                color: Color::LightYellow,  
             }); 
         });  
 
