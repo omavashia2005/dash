@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
-use ratatui::widgets::canvas::{Canvas, Circle, Line, Rectangle};  
+use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
 use color_eyre::Result;  
 use ratatui::crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::{Constraint, Layout, Rect};  
@@ -32,22 +32,24 @@ fn update_viewport_position(background_viewport: &mut BackgroundViewPort){
     if background_viewport.x0.abs() == 600.0{
         background_viewport.x0 = -300.0; 
         background_viewport.x1 = 300.0;
-    } else {
-        background_viewport.x0 += 12.0; 
-        background_viewport.x1 += 12.0;
+    }
+    else {
+        background_viewport.x0 += 5.0; 
+        background_viewport.x1 += 5.0;
     }
 }
 
 fn main() -> Result<()> {  
     color_eyre::install()?;  
   
-    let game_view_port = &mut GameViewPort{ x0: -310.0, x1: 200.0, y0: -300.0, y1: 400.0 };  
+    let game_view_port = &mut GameViewPort{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
+
     let background_viewport = &mut BackgroundViewPort{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
 
-    let game_object = &mut GameObject{ x: -300.0, y: -10.0};
+    let game_object = &mut GameObject{ x: -280.0, y: -10.0};
 
     let mut viewport_last_updated = Instant::now();  
-    const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
+    const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
 
 
     let mut object_last_updated = Instant::now();  
@@ -122,6 +124,23 @@ fn render_background_canvas(frame: &mut Frame, background_viewport: &BackgroundV
                 radius: 50.0, 
                 x: 220.0,
                 y: 300.0
+            });
+            ctx.draw(&Circle{
+                color: Color::DarkGray, 
+                radius: 25.0, 
+                x: 400.0,
+                y: 300.0
+            });
+            ctx.draw(&Circle{
+                color: Color::DarkGray, 
+                radius: 70.0, 
+                x: 100.0,
+                y: 200.0
+            });
+            ctx.layer();
+            ctx.draw(&Points{
+                coords: &[(300.0, -40.0)], 
+                color: Color::White
             });
         });
 
