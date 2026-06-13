@@ -43,29 +43,30 @@ fn main() -> Result<()> {
   
     let game_object_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
 
-    let layer_one_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
-    let layer_one_update = &ViewportUpdate{dx: 5.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
+    let l1_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let l1_update = &ViewportUpdate{dx: 5.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let layer_two_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
-    let layer_two_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
+    let l2_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
     let game_object = &mut GameObject{ x: -280.0, y: -10.0};
 
-    let mut viewport_last_updated = Instant::now();  
+    let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
 
 
-    let mut object_last_updated = Instant::now();  
+    let mut obj_updated = Instant::now();  
     const OBJECT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
 
     ratatui::run(|terminal| loop {  
 
         // Update state between draw calls  
-        if viewport_last_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
-            update_viewport(layer_one_viewport, layer_one_update); 
-            update_viewport(layer_two_viewport, layer_two_update);
-            viewport_last_updated = Instant::now();  
+        if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
+            update_viewport(l1_viewport, l1_update); 
+            update_viewport(l2_viewport, l2_update);
+            viewport_updated = Instant::now();  
         }  
+
         let lower_bound: f64 = 0.0; 
         let upper_bound: f64 = 80.0; 
 
@@ -77,16 +78,16 @@ fn main() -> Result<()> {
                     break Ok(());
                 } else if key_event.code == KeyCode::Char('j'){
                     // make it jump
-                    if object_last_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y <= (upper_bound - 10.0){  
+                    if obj_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y <= (upper_bound - 10.0){  
                         game_object.y += 50.0;
-                        object_last_updated = Instant::now();  
+                        obj_updated = Instant::now();  
                     }  
 
                 } else if key_event.code == KeyCode::Char('d'){
                     // make it jump  
-                    if object_last_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y >= (lower_bound + 0.0){  
+                    if obj_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y >= (lower_bound + 0.0){  
                         game_object.y -= 10.0;
-                        object_last_updated = Instant::now();  
+                        obj_updated = Instant::now();  
                     }  
                 }
 
@@ -94,7 +95,7 @@ fn main() -> Result<()> {
         }
 
         // Render with current state  
-        terminal.draw(|frame| render(frame, game_object, game_object_viewport, layer_one_viewport, layer_two_viewport))?;  
+        terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport))?;  
 
     })  
 }  
