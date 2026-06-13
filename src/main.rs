@@ -9,64 +9,45 @@ use ratatui::style::{Color, Stylize};
 use ratatui::text::{Line as TextLine, Span};  
 use ratatui::Frame;  
   
-struct GameViewPort {  
+struct Viewport{
     x0: f64,   
     x1: f64,   
     y0: f64,   
     y1: f64,  
-}  
+}
 
 struct GameObject{
     x: f64, 
     y: f64
 }
 
-struct LayerOneViewport{
-    x0: f64, 
-    x1: f64, 
-    y0: f64, 
-    y1: f64
+struct ViewportUpdate{
+        dx: f64,
+        x0_max: f64,
+        x0_default: f64,
+        x1_default: f64,
 }
 
-
-struct LayerTwoViewport{
-    x0: f64, 
-    x1: f64, 
-    y0: f64, 
-    y1: f64
-}
-
-
-fn update_layer_two_viewport(layer_two_viewport: &mut LayerTwoViewport){
-    if layer_two_viewport.x0.abs() == 600.0{
-        layer_two_viewport.x0 = -300.0; 
-        layer_two_viewport.x1 = 300.0;
-    }
-    else {
-        layer_two_viewport.x0 += 10.0; 
-        layer_two_viewport.x1 += 10.0;
-    }
-}
-
-fn update_layer_one_viewport(layer_one_viewport: &mut LayerOneViewport){
-    if layer_one_viewport.x0.abs() == 600.0{
-        layer_one_viewport.x0 = -300.0; 
-        layer_one_viewport.x1 = 300.0;
-    }
-    else {
-        layer_one_viewport.x0 += 5.0; 
-        layer_one_viewport.x1 += 5.0;
+fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
+    if viewport.x0.abs() == changes.x0_max{
+        viewport.x0 = changes.x0_default;
+        viewport.x1 = changes.x1_default;
+    } else {
+        viewport.x0 += changes.dx;
+        viewport.x1 += changes.dx;
     }
 }
 
 fn main() -> Result<()> {  
     color_eyre::install()?;  
   
-    let game_object_viewport = &mut GameViewPort{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
+    let game_object_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
 
-    let layer_one_viewport = &mut LayerOneViewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let layer_one_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let layer_one_update = &ViewportUpdate{dx: 5.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let layer_two_viewport = &mut LayerTwoViewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let layer_two_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let layer_two_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
     let game_object = &mut GameObject{ x: -280.0, y: -10.0};
 
@@ -81,8 +62,8 @@ fn main() -> Result<()> {
 
         // Update state between draw calls  
         if viewport_last_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
-            update_layer_one_viewport(layer_one_viewport); 
-            update_layer_two_viewport(layer_two_viewport);
+            update_viewport(layer_one_viewport, layer_one_update); 
+            update_viewport(layer_two_viewport, layer_two_update);
             viewport_last_updated = Instant::now();  
         }  
         let lower_bound: f64 = 0.0; 
@@ -118,7 +99,7 @@ fn main() -> Result<()> {
     })  
 }  
   
-fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort, layer_one_viewport: &LayerOneViewport, layer_two_viewport: &mut LayerTwoViewport) {  
+fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &Viewport, layer_one_viewport: &Viewport, layer_two_viewport: &mut Viewport) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -136,9 +117,7 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameView
     render_main_canvas(frame, game_object, game_view_port, area);  
 } 
 
-
-
-fn render_layer_two(frame: &mut Frame, layer_two_viewport: &LayerTwoViewport, area: Rect){
+fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect){
     let background_canvas = Canvas::default()
         .x_bounds([layer_two_viewport.x0, layer_two_viewport.x1])
         .y_bounds([layer_two_viewport.y0, layer_two_viewport.y1])
@@ -162,10 +141,7 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &LayerTwoViewport, ar
 }
   
 
-
-
-
-fn render_layer_one(frame: &mut Frame, layer_one_viewport: &LayerOneViewport, area: Rect){
+fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
     let background_canvas = Canvas::default()
         .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
         .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
@@ -194,7 +170,7 @@ fn render_layer_one(frame: &mut Frame, layer_one_viewport: &LayerOneViewport, ar
     frame.render_widget(background_canvas, area);
 }
   
-fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &GameViewPort, area: Rect) {  
+fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &Viewport, area: Rect) {  
     let canvas = Canvas::default()  
         .marker(symbols::Marker::HalfBlock)  
         .block(Block::bordered().title("DinoTerm"))  
