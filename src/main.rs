@@ -1,8 +1,7 @@
-use std::thread;
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
-use ratatui::widgets::canvas::{Canvas, Rectangle, Line};  
+use ratatui::widgets::canvas::{Canvas, Circle, Line, Rectangle};  
 use color_eyre::Result;  
 use ratatui::crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::{Constraint, Layout, Rect};  
@@ -22,36 +21,49 @@ struct GameObject{
     y: f64
 }
 
-fn update_viewport_position(game_viewport: &mut GameViewPort){
-    if game_viewport.x1.abs() == 480.0{
-        game_viewport.x0 = -300.0;
-        game_viewport.x1 = 300.0; 
+struct BackgroundViewPort{
+    x0: f64, 
+    x1: f64, 
+    y0: f64, 
+    y1: f64
+}
+
+fn update_viewport_position(background_viewport: &mut BackgroundViewPort){
+    if background_viewport.x0.abs() == 600.0{
+        background_viewport.x0 = -300.0; 
+        background_viewport.x1 = 300.0;
     } else {
-        game_viewport.x0 -= 20.0;
-        game_viewport.x1 -= 20.0; 
+        background_viewport.x0 += 12.0; 
+        background_viewport.x1 += 12.0;
     }
 }
 
 fn main() -> Result<()> {  
     color_eyre::install()?;  
   
-    let game_view_port = &mut GameViewPort{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 300.0 };  
-    let game_object = &mut GameObject{ x: -350.0, y: 0.0};
+    let game_view_port = &mut GameViewPort{ x0: -310.0, x1: 200.0, y0: -300.0, y1: 400.0 };  
+    let background_viewport = &mut BackgroundViewPort{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
 
-    let mut last_update = Instant::now();  
-    const UPDATE_INTERVAL: Duration = Duration::from_millis(50);  
-  
+    let game_object = &mut GameObject{ x: -300.0, y: -10.0};
+
+    let mut viewport_last_updated = Instant::now();  
+    const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
+
+
+    let mut object_last_updated = Instant::now();  
+    const OBJECT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
+
     ratatui::run(|terminal| loop {  
-        // Update state between draw calls  
-        if last_update.elapsed() >= UPDATE_INTERVAL {  
-            update_viewport_position(game_view_port); 
-            last_update = Instant::now();  
-        }  
-  
-        // Render with current state  
-        terminal.draw(|frame| render(frame, game_object, game_view_port))?;  
 
-        if event::poll(Duration::from_millis(50))? {
+        // Update state between draw calls  
+        if viewport_last_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
+            update_viewport_position(background_viewport); 
+            viewport_last_updated = Instant::now();  
+        }  
+        let lower_bound: f64 = 0.0; 
+        let upper_bound: f64 = 80.0; 
+
+        if event::poll(Duration::from_millis(10))? {
             // An event is ready! Now we read it safely.
             if let Event::Key(key_event) = event::read()? {
                 if key_event.code == KeyCode::Char('q') {
@@ -59,16 +71,29 @@ fn main() -> Result<()> {
                     break Ok(());
                 } else if key_event.code == KeyCode::Char('j'){
                     // make it jump
-                    game_object.y += 10.0;
+                    if object_last_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y <= (upper_bound - 10.0){  
+                        game_object.y += 50.0;
+                        object_last_updated = Instant::now();  
+                    }  
+
+                } else if key_event.code == KeyCode::Char('d'){
+                    // make it jump  
+                    if object_last_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y >= (lower_bound + 0.0){  
+                        game_object.y -= 10.0;
+                        object_last_updated = Instant::now();  
+                    }  
                 }
 
             }
         }
 
+        // Render with current state  
+        terminal.draw(|frame| render(frame, game_object, game_view_port, background_viewport))?;  
+
     })  
 }  
   
-fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort) {  
+fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort, background_viewport: &BackgroundViewPort) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -80,9 +105,28 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameView
     ]);  
   
     frame.render_widget(title.centered(), top);  
-  
+
+    render_background_canvas(frame, background_viewport, area);  
     render_canvas(frame, game_object, game_view_port, area);  
-}  
+} 
+
+
+fn render_background_canvas(frame: &mut Frame, background_viewport: &BackgroundViewPort, area: Rect){
+    let background_canvas = Canvas::default()
+        .x_bounds([background_viewport.x0, background_viewport.x1])
+        .y_bounds([background_viewport.y0, background_viewport.y1])
+        .paint(|ctx|{
+            ctx.layer();
+            ctx.draw(&Circle{
+                color: Color::DarkGray, 
+                radius: 50.0, 
+                x: 220.0,
+                y: 300.0
+            });
+        });
+
+    frame.render_widget(background_canvas, area);
+}
   
 fn render_canvas(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort, area: Rect) {  
     let canvas = Canvas::default()  
@@ -95,10 +139,11 @@ fn render_canvas(frame: &mut Frame, game_object: &GameObject, game_view_port: &G
             ctx.draw(&Line{
                 x1: game_view_port.x0,
                 x2: game_view_port.x1,
-                y1: -2.0, 
-                y2: -2.0, 
+                y1: -20.0, 
+                y2: -20.0, 
                 color: Color::DarkGray
             });
+            // ctx.layer();
             ctx.draw(&Rectangle {  
                 x: game_object.x, 
                 y: game_object.y,  
@@ -107,6 +152,7 @@ fn render_canvas(frame: &mut Frame, game_object: &GameObject, game_view_port: &G
                 color: Color::White,  
             });  
         });  
-  
+
+    
     frame.render_widget(canvas, area);  
 }
