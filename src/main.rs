@@ -1,7 +1,8 @@
+// use rand::{Rng, rng};
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
-use ratatui::widgets::canvas::{Canvas, Circle, Line, Rectangle};  
+use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
 use color_eyre::Result;  
 use ratatui::crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::{Constraint, Layout, Rect};  
@@ -116,18 +117,16 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport,
 } 
 
 fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect) {
+    let start_x = -290.0;
+    let y = -140.0;
+    let width = 150.0;
+    let height = 120.0;
+    let count = 10;
     let background_canvas = Canvas::default()
         .x_bounds([layer_two_viewport.x0, layer_two_viewport.x1])
         .y_bounds([layer_two_viewport.y0, layer_two_viewport.y1])
         .paint(|ctx| {
             ctx.layer();
-
-            let start_x = -290.0;
-            let y = -140.0;
-            let width = 150.0;
-            let height = 120.0;
-            let count = 10;
-
             for i in 0..count {
                 ctx.draw(&Rectangle {
                     x: start_x + (i as f64 * width),
@@ -144,16 +143,16 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
 
 
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
+    
     let background_canvas = Canvas::default()
         .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
         .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
         .paint(|ctx|{
-            ctx.draw(&Circle{
-                color: Color::DarkGray, 
-                radius: 50.0, 
-                x: 220.0,
-                y: 300.0
-            });
+            // rng to generate different values of 
+            // value of r(radius) in the 50.0 - 80.0 range
+            // x, y in the 150 - 310 float range, 
+            // count in the 2 - 7 range
+        
             ctx.draw(&Circle{
                 color: Color::DarkGray, 
                 radius: 25.0, 
@@ -166,8 +165,16 @@ fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect
                 x: 100.0,
                 y: 200.0
             });
-        });
+            ctx.layer();
+            // rng to generate different values of 
+            // x, y in the 150 - 310 float range, 
+            // count in the 15 - 50 range
 
+            ctx.draw(&Points{
+                color: Color::White, 
+                coords: &[(-200.0, 200.0)]
+            });
+        });
     frame.render_widget(background_canvas, area);
 }
   
