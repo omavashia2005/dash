@@ -1,0 +1,92 @@
+use std::time::{Duration, Instant};  
+use ratatui::symbols;  
+use ratatui::widgets::Block;  
+use ratatui::widgets::canvas::{Canvas, Rectangle};  
+use color_eyre::Result;  
+use ratatui::crossterm::event::{self, Event, KeyCode};
+use ratatui::layout::{Constraint, Layout, Rect};  
+use ratatui::style::{Color, Stylize};  
+use ratatui::text::{Line as TextLine, Span};  
+use ratatui::Frame;  
+  
+struct GameObject {  
+    x0: f64,   
+    x1: f64,   
+    y0: f64,   
+    y1: f64  
+}  
+
+
+fn update_object_position(game_object: &mut GameObject){
+    game_object.x0 -= 20.0;  
+    game_object.x1 += 20.0;  
+    game_object.y0 += 0.0;  
+    game_object.y1 += 0.0;
+}
+
+fn main() -> Result<()> {  
+    color_eyre::install()?;  
+  
+    let game_object = &mut GameObject { x0: -300.0, x1: 300.0, y0: -100.0, y1: 100.0 };  
+    let mut last_update = Instant::now();  
+    const UPDATE_INTERVAL: Duration = Duration::from_millis(10);  
+  
+    ratatui::run(|terminal| loop {  
+        // Update state between draw calls  
+        if last_update.elapsed() >= UPDATE_INTERVAL {  
+            update_object_position(game_object);
+            last_update = Instant::now();  
+        }  
+  
+        // Render with current state  
+        terminal.draw(|frame| render(frame, game_object))?;  
+
+
+        if event::poll(Duration::from_millis(50))? {
+            // An event is ready! Now we read it safely.
+            if let Event::Key(key_event) = event::read()? {
+                if key_event.code == KeyCode::Char('q') {
+                    println!("Quitting game!");
+                    break Ok(());
+                } 
+
+            }
+        }
+
+    })  
+}  
+  
+fn render(frame: &mut Frame, game_object: &GameObject) {  
+    let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
+    let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
+    let [top, main] = frame.area().layout(&vertical);  
+    let [area] = main.layout(&horizontal);  
+  
+    let title = TextLine::from_iter([  
+        Span::from("Canvas Widget").bold(),  
+        Span::from(" (Press 'q' to quit)"),  
+    ]);  
+  
+    frame.render_widget(title.centered(), top);  
+  
+    render_canvas(frame, game_object, area);  
+}  
+  
+fn render_canvas(frame: &mut Frame, game_object: &GameObject, area: Rect) {  
+    let canvas = Canvas::default()  
+        .marker(symbols::Marker::HalfBlock)  
+        .block(Block::bordered().title("DinoTerm"))  
+        .x_bounds([game_object.x0, game_object.x1])  
+        .y_bounds([game_object.y0, game_object.y1]) 
+        .paint(|ctx| {  
+            ctx.draw(&Rectangle {  
+                x: -250.0, 
+                y: -60.0,  
+                width: 100.0,  
+                height: 100.0,  
+                color: Color::Red,  
+            });  
+        });  
+  
+    frame.render_widget(canvas, area);  
+}
