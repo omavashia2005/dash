@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
-use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
+use ratatui::widgets::canvas::{Canvas, Circle, Line, Rectangle};  
 use color_eyre::Result;  
 use ratatui::crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::{Constraint, Layout, Rect};  
@@ -29,7 +29,7 @@ struct ViewportUpdate{
 }
 
 fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
-    if viewport.x0.abs() == changes.x0_max{
+    if viewport.x0.abs() >= changes.x0_max{
         viewport.x0 = changes.x0_default;
         viewport.x1 = changes.x1_default;
     } else {
@@ -46,14 +46,13 @@ fn main() -> Result<()> {
     let l1_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
     let l1_update = &ViewportUpdate{dx: 5.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let l2_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let l2_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0};
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
     let game_object = &mut GameObject{ x: -280.0, y: -10.0};
 
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(100);
-
 
     let mut obj_updated = Instant::now();  
     const OBJECT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
@@ -124,16 +123,74 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
         .y_bounds([layer_two_viewport.y0, layer_two_viewport.y1])
         .paint(|ctx|{
             ctx.layer();
-            ctx.draw(&Points{
-                coords: &[(20.0, -40.0)], 
+            ctx.draw(&Rectangle{
+                x: -290.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            }); 
+            ctx.draw(&Rectangle{
+                x: -140.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
                 color: Color::White
             });
-            ctx.draw(&Points{
-                coords: &[(40.0, -75.0)], 
+            ctx.draw(&Rectangle{
+                x: 10.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
                 color: Color::White
             });
-            ctx.draw(&Points{
-                coords: &[(60.0, -90.0)], 
+            ctx.draw(&Rectangle{
+                x: 160.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            });
+            ctx.draw(&Rectangle{
+                x: 310.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            });
+            ctx.draw(&Rectangle{
+                x: 460.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            });
+            ctx.draw(&Rectangle{
+                x: 610.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            });
+            ctx.draw(&Rectangle{
+                x: 760.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            });
+            ctx.draw(&Rectangle{
+                x: 910.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
+                color: Color::White
+            });
+            ctx.draw(&Rectangle{
+                x: 1060.0, 
+                y: -140.0, 
+                width: 150.0, 
+                height: 120.0, 
                 color: Color::White
             });
         });
@@ -147,7 +204,6 @@ fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect
         .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
         .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
         .paint(|ctx|{
-            ctx.layer();
             ctx.draw(&Circle{
                 color: Color::DarkGray, 
                 radius: 50.0, 
