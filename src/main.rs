@@ -21,30 +21,52 @@ struct GameObject{
     y: f64
 }
 
-struct BackgroundViewPort{
+struct LayerOneViewport{
     x0: f64, 
     x1: f64, 
     y0: f64, 
     y1: f64
 }
 
-fn update_viewport_position(background_viewport: &mut BackgroundViewPort){
-    if background_viewport.x0.abs() == 600.0{
-        background_viewport.x0 = -300.0; 
-        background_viewport.x1 = 300.0;
+
+struct LayerTwoViewport{
+    x0: f64, 
+    x1: f64, 
+    y0: f64, 
+    y1: f64
+}
+
+
+fn update_layer_two_viewport(layer_two_viewport: &mut LayerTwoViewport){
+    if layer_two_viewport.x0.abs() == 600.0{
+        layer_two_viewport.x0 = -300.0; 
+        layer_two_viewport.x1 = 300.0;
     }
     else {
-        background_viewport.x0 += 5.0; 
-        background_viewport.x1 += 5.0;
+        layer_two_viewport.x0 += 10.0; 
+        layer_two_viewport.x1 += 10.0;
+    }
+}
+
+fn update_layer_one_viewport(layer_one_viewport: &mut LayerOneViewport){
+    if layer_one_viewport.x0.abs() == 600.0{
+        layer_one_viewport.x0 = -300.0; 
+        layer_one_viewport.x1 = 300.0;
+    }
+    else {
+        layer_one_viewport.x0 += 5.0; 
+        layer_one_viewport.x1 += 5.0;
     }
 }
 
 fn main() -> Result<()> {  
     color_eyre::install()?;  
   
-    let game_view_port = &mut GameViewPort{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
+    let game_object_viewport = &mut GameViewPort{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
 
-    let background_viewport = &mut BackgroundViewPort{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+    let layer_one_viewport = &mut LayerOneViewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
+
+    let layer_two_viewport = &mut LayerTwoViewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
 
     let game_object = &mut GameObject{ x: -280.0, y: -10.0};
 
@@ -59,7 +81,8 @@ fn main() -> Result<()> {
 
         // Update state between draw calls  
         if viewport_last_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
-            update_viewport_position(background_viewport); 
+            update_layer_one_viewport(layer_one_viewport); 
+            update_layer_two_viewport(layer_two_viewport);
             viewport_last_updated = Instant::now();  
         }  
         let lower_bound: f64 = 0.0; 
@@ -90,12 +113,12 @@ fn main() -> Result<()> {
         }
 
         // Render with current state  
-        terminal.draw(|frame| render(frame, game_object, game_view_port, background_viewport))?;  
+        terminal.draw(|frame| render(frame, game_object, game_object_viewport, layer_one_viewport, layer_two_viewport))?;  
 
     })  
 }  
   
-fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort, background_viewport: &BackgroundViewPort) {  
+fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort, layer_one_viewport: &LayerOneViewport, layer_two_viewport: &mut LayerTwoViewport) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -108,15 +131,44 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameView
   
     frame.render_widget(title.centered(), top);  
 
-    render_background_canvas(frame, background_viewport, area);  
-    render_canvas(frame, game_object, game_view_port, area);  
+    render_layer_one(frame, layer_one_viewport, area);  
+    render_layer_two(frame, layer_two_viewport, area);
+    render_main_canvas(frame, game_object, game_view_port, area);  
 } 
 
 
-fn render_background_canvas(frame: &mut Frame, background_viewport: &BackgroundViewPort, area: Rect){
+
+fn render_layer_two(frame: &mut Frame, layer_two_viewport: &LayerTwoViewport, area: Rect){
     let background_canvas = Canvas::default()
-        .x_bounds([background_viewport.x0, background_viewport.x1])
-        .y_bounds([background_viewport.y0, background_viewport.y1])
+        .x_bounds([layer_two_viewport.x0, layer_two_viewport.x1])
+        .y_bounds([layer_two_viewport.y0, layer_two_viewport.y1])
+        .paint(|ctx|{
+            ctx.layer();
+            ctx.draw(&Points{
+                coords: &[(20.0, -40.0)], 
+                color: Color::White
+            });
+            ctx.draw(&Points{
+                coords: &[(40.0, -75.0)], 
+                color: Color::White
+            });
+            ctx.draw(&Points{
+                coords: &[(60.0, -90.0)], 
+                color: Color::White
+            });
+        });
+
+    frame.render_widget(background_canvas, area);
+}
+  
+
+
+
+
+fn render_layer_one(frame: &mut Frame, layer_one_viewport: &LayerOneViewport, area: Rect){
+    let background_canvas = Canvas::default()
+        .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
+        .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
         .paint(|ctx|{
             ctx.layer();
             ctx.draw(&Circle{
@@ -137,27 +189,22 @@ fn render_background_canvas(frame: &mut Frame, background_viewport: &BackgroundV
                 x: 100.0,
                 y: 200.0
             });
-            ctx.layer();
-            ctx.draw(&Points{
-                coords: &[(300.0, -40.0)], 
-                color: Color::White
-            });
         });
 
     frame.render_widget(background_canvas, area);
 }
   
-fn render_canvas(frame: &mut Frame, game_object: &GameObject, game_view_port: &GameViewPort, area: Rect) {  
+fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &GameViewPort, area: Rect) {  
     let canvas = Canvas::default()  
         .marker(symbols::Marker::HalfBlock)  
         .block(Block::bordered().title("DinoTerm"))  
-        .x_bounds([game_view_port.x0, game_view_port.x1])  
-        .y_bounds([game_view_port.y0, game_view_port.y1]) 
+        .x_bounds([game_object_viewport.x0, game_object_viewport.x1])  
+        .y_bounds([game_object_viewport.y0, game_object_viewport.y1]) 
         .background_color(Color::Black)
         .paint(|ctx| {  
             ctx.draw(&Line{
-                x1: game_view_port.x0,
-                x2: game_view_port.x1,
+                x1: game_object_viewport.x0,
+                x2: game_object_viewport.x1,
                 y1: -20.0, 
                 y2: -20.0, 
                 color: Color::DarkGray
@@ -169,7 +216,7 @@ fn render_canvas(frame: &mut Frame, game_object: &GameObject, game_view_port: &G
                 width: 10.0,  
                 height: 10.0,  
                 color: Color::White,  
-            });  
+            }); 
         });  
 
     
