@@ -1,9 +1,8 @@
-// use rand::{Rng, rng};
+use color_eyre::Result;
+use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
-use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
-use color_eyre::Result;  
 use ratatui::crossterm::event::{self, Event, KeyCode};
 use ratatui::layout::{Constraint, Layout, Rect};  
 use ratatui::style::{Color, Stylize};  
@@ -19,7 +18,7 @@ struct Viewport{
 
 struct GameObject{
     x: f64, 
-    y: f64
+    y: f64, 
 }
 
 struct ViewportUpdate{
@@ -50,13 +49,11 @@ fn main() -> Result<()> {
     let l2_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0};
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let game_object = &mut GameObject{ x: -280.0, y: -10.0};
+    let game_object = &mut GameObject{ x: -280.0, y: 0.0};
 
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
-    let mut obj_updated = Instant::now();  
-    const OBJECT_UPDATE_INTERVAL: Duration = Duration::from_millis(70);  
 
     ratatui::run(|terminal| loop {  
         if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
@@ -64,34 +61,18 @@ fn main() -> Result<()> {
             update_viewport(l2_viewport, l2_update);
             viewport_updated = Instant::now();  
         }  
-
-        let lower_bound: f64 = 0.0; 
-        let upper_bound: f64 = 80.0; 
-
+        
         if event::poll(Duration::from_millis(10))? {
             // An event is ready! Now we read it safely.
             if let Event::Key(key_event) = event::read()? {
                 if key_event.code == KeyCode::Char('q') {
                     println!("Quitting game!");
                     break Ok(());
-                } else if key_event.code == KeyCode::Char('j'){
-                    // make it jump
-                    if obj_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y <= (upper_bound - 10.0){  
-                        game_object.y += 50.0;
-                        obj_updated = Instant::now();  
-                    }  
-
-                } else if key_event.code == KeyCode::Char('d'){
-                    // make it jump  
-                    if obj_updated.elapsed() >= OBJECT_UPDATE_INTERVAL && game_object.y >= (lower_bound + 0.0){  
-                        game_object.y -= 10.0;
-                        obj_updated = Instant::now();  
-                    }  
+                } else if key_event.code == KeyCode::Char(' '){
                 }
 
             }
         }
-
         // Render with current state  
         terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport))?;  
 
@@ -136,6 +117,7 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
                     color: Color::White,
                 });
             }
+            ctx.layer();
         });
 
     frame.render_widget(background_canvas, area);
