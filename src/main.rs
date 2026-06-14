@@ -19,6 +19,7 @@ struct Viewport{
 struct GameObject{
     x: f64, 
     y: f64, 
+    y_velocity: f64,
 }
 
 struct ViewportUpdate{
@@ -38,6 +39,22 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
     }
 }
 
+// const OBJ_UPPER_Y:f64 = 80.0;
+const GROUND_Y:f64 = -10.0;
+// const OBJ_JUMP_VAL:f64 = 40.0;
+const GRAVITY: f64 = 60.0;
+
+fn update_position(game_object: &mut GameObject, dt: f64){
+
+    game_object.y_velocity -= GRAVITY * dt;
+    game_object.y += game_object.y_velocity * dt;
+    
+    if game_object.y <= GROUND_Y {
+        game_object.y = GROUND_Y;
+        game_object.y_velocity = 0.0;
+    }
+}
+
 fn main() -> Result<()> {  
     color_eyre::install()?;  
   
@@ -49,11 +66,10 @@ fn main() -> Result<()> {
     let l2_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0};
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let game_object = &mut GameObject{ x: -280.0, y: 0.0};
+    let game_object = &mut GameObject{ x: -280.0, y: GROUND_Y, y_velocity: -10.0};
 
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
-
 
     ratatui::run(|terminal| loop {  
         if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
@@ -61,7 +77,6 @@ fn main() -> Result<()> {
             update_viewport(l2_viewport, l2_update);
             viewport_updated = Instant::now();  
         }  
-        
         if event::poll(Duration::from_millis(10))? {
             // An event is ready! Now we read it safely.
             if let Event::Key(key_event) = event::read()? {
@@ -69,11 +84,17 @@ fn main() -> Result<()> {
                     println!("Quitting game!");
                     break Ok(());
                 } else if key_event.code == KeyCode::Char(' '){
-                }
+                    game_object.y_velocity += 90.0;
 
+                }
             }
         }
-        // Render with current state  
+
+        update_position(game_object, 0.08);
+
+        use std::fs;
+        let _ = fs::write("sometext.txt", format!("OBJ VEL: {:?}", game_object.y_velocity));
+    
         terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport))?;  
 
     })  
