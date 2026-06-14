@@ -39,15 +39,14 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
     }
 }
 
-// const OBJ_UPPER_Y:f64 = 80.0;
 const GROUND_Y:f64 = -10.0;
-// const OBJ_JUMP_VAL:f64 = 40.0;
 const GRAVITY: f64 = 60.0;
+const DT: f64 = 0.08;
 
-fn update_position(game_object: &mut GameObject, dt: f64){
+fn update_position(game_object: &mut GameObject){
 
-    game_object.y_velocity -= GRAVITY * dt;
-    game_object.y += game_object.y_velocity * dt;
+    game_object.y_velocity -= GRAVITY * DT;
+    game_object.y += game_object.y_velocity * DT;
     
     if game_object.y <= GROUND_Y {
         game_object.y = GROUND_Y;
@@ -90,11 +89,8 @@ fn main() -> Result<()> {
             }
         }
 
-        update_position(game_object, 0.08);
+        update_position(game_object); 
 
-        use std::fs;
-        let _ = fs::write("sometext.txt", format!("OBJ VEL: {:?}", game_object.y_velocity));
-    
         terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport))?;  
 
     })  
