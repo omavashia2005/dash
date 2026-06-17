@@ -20,6 +20,7 @@ struct GameObject{
     x: f64, 
     y: f64, 
     y_velocity: f64,
+    x_velocity: f64
 }
 
 struct ViewportUpdate{
@@ -40,6 +41,7 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 }
 
 const GROUND_Y:f64 = -10.0;
+const GROUND_X:f64 = 300.0;
 const GRAVITY: f64 = 60.0;
 const DT: f64 = 0.08;
 
@@ -47,30 +49,41 @@ fn update_position(game_object: &mut GameObject){
 
     game_object.y_velocity -= GRAVITY * DT;
     game_object.y += game_object.y_velocity * DT;
-    
+    game_object.x += game_object.x_velocity * DT;
+ 
     if game_object.y <= GROUND_Y {
         game_object.y = GROUND_Y;
         game_object.y_velocity = 0.0;
+    }
+
+    if game_object.x >= GROUND_X {
+        game_object.x = 0.0;
+        game_object.x_velocity = 10.0;
     }
 }
 
 fn main() -> Result<()> {  
     color_eyre::install()?;  
   
-    let game_object_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0 };  
+    let game_object_viewport = &mut Viewport{ x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 };
 
     let l1_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
     let l1_update = &ViewportUpdate{dx: 0.5, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let l2_viewport = &mut Viewport{ x0: -290.0, x1: 310.0, y0: -300.0, y1: 400.0};
+    let l2_viewport = &mut Viewport{ x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0};
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let game_object = &mut GameObject{ x: -280.0, y: GROUND_Y, y_velocity: -10.0};
+    let game_object = &mut GameObject{ x: 10.0, y: GROUND_Y, y_velocity: -10.0, x_velocity: 0.0};
 
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
     ratatui::run(|terminal| loop {  
+
+        if game_object.x_velocity >= 0.0{
+            game_object.x_velocity -= DT;
+        }
+
         if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
             update_viewport(l1_viewport, l1_update); 
             update_viewport(l2_viewport, l2_update);
@@ -84,7 +97,7 @@ fn main() -> Result<()> {
                     break Ok(());
                 } else if key_event.code == KeyCode::Char(' '){
                     game_object.y_velocity += 90.0;
-
+                    game_object.x_velocity += 10.0; 
                 }
             }
         }
