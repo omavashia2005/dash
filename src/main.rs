@@ -49,17 +49,17 @@ fn update_position(game_object: &mut GameObject){
 
     game_object.y_velocity -= GRAVITY * DT;
     game_object.y += game_object.y_velocity * DT;
-    game_object.x += game_object.x_velocity * DT;
+    // game_object.x += game_object.x_velocity * DT;
  
     if game_object.y <= GROUND_Y {
         game_object.y = GROUND_Y;
         game_object.y_velocity = 0.0;
     }
 
-    if game_object.x >= GROUND_X {
-        game_object.x = 0.0;
-        game_object.x_velocity = 10.0;
-    }
+    // if game_object.x >= GROUND_X {
+    //     game_object.x = 0.0;
+    //     game_object.x_velocity = 10.0;
+    // }
 }
 
 fn main() -> Result<()> {  
@@ -80,9 +80,9 @@ fn main() -> Result<()> {
 
     ratatui::run(|terminal| loop {  
 
-        if game_object.x_velocity >= 0.0{
-            game_object.x_velocity -= DT;
-        }
+        // if game_object.x_velocity >= 0.0{
+        //     game_object.x_velocity -= DT;
+        // }
 
         if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
             update_viewport(l1_viewport, l1_update); 
@@ -97,19 +97,26 @@ fn main() -> Result<()> {
                     break Ok(());
                 } else if key_event.code == KeyCode::Char(' '){
                     game_object.y_velocity += 90.0;
-                    game_object.x_velocity += 10.0; 
+                    // game_object.x_velocity += 10.0; 
                 }
             }
         }
 
         update_position(game_object); 
 
-        terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport))?;  
+        let obstacle_viewport = &Viewport{
+            x0: game_object_viewport.x0, 
+            x1: game_object_viewport.x1,
+            y0: game_object_viewport.y0,
+            y1: game_object_viewport.y1
+        };
+
+        terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport, obstacle_viewport))?;  
 
     })  
 }  
   
-fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport, l1_viewport: &Viewport, l2_viewport: &mut Viewport) {  
+fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport, l1_viewport: &Viewport, l2_viewport: &mut Viewport, obsacle_viewport: &Viewport) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -124,6 +131,7 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport,
 
     render_layer_one(frame, l1_viewport, area);  
     render_layer_two(frame, l2_viewport, area);
+    render_obstacles(frame, obsacle_viewport, area);
     render_main_canvas(frame, game_object, game_viewport, area);  
 } 
 
@@ -153,6 +161,34 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
     frame.render_widget(background_canvas, area);
 }
 
+
+
+fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
+
+    let obstacles = Canvas::default()
+        .x_bounds([obsacle_viewport.x0, obsacle_viewport.x1])
+        .y_bounds([obsacle_viewport.y0, obsacle_viewport.y1])
+        .paint(|ctx| {
+            ctx.draw(&Rectangle{
+                x: 10.0, 
+                y: 20.0, 
+                width: 20.0, 
+                height: 40.0,
+                color: Color::Cyan
+            });
+        });
+
+
+    frame.render_widget(obstacles, area);
+
+
+
+}
+
+
+
+
+ 
 
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
     
