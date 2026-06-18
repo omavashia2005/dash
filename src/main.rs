@@ -8,8 +8,17 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Stylize};  
 use ratatui::text::{Line as TextLine, Span};  
 use ratatui::Frame;  
-  
+
+#[derive(PartialEq, Eq)]
+enum  ViewportType {
+    LayerOne, 
+    LayerTwo, 
+    GameObject, 
+    Obstacle,
+}
+
 struct Viewport{
+    viewport_type: ViewportType, 
     x0: f64,   
     x1: f64,   
     y0: f64,   
@@ -20,7 +29,6 @@ struct GameObject{
     x: f64, 
     y: f64, 
     y_velocity: f64,
-    x_velocity: f64
 }
 
 struct ViewportUpdate{
@@ -41,7 +49,6 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 }
 
 const GROUND_Y:f64 = -10.0;
-const GROUND_X:f64 = 300.0;
 const GRAVITY: f64 = 60.0;
 const DT: f64 = 0.08;
 
@@ -49,74 +56,73 @@ fn update_position(game_object: &mut GameObject){
 
     game_object.y_velocity -= GRAVITY * DT;
     game_object.y += game_object.y_velocity * DT;
-    // game_object.x += game_object.x_velocity * DT;
  
     if game_object.y <= GROUND_Y {
         game_object.y = GROUND_Y;
         game_object.y_velocity = 0.0;
     }
-
-    // if game_object.x >= GROUND_X {
-    //     game_object.x = 0.0;
-    //     game_object.x_velocity = 10.0;
-    // }
 }
 
 fn main() -> Result<()> {  
     color_eyre::install()?;  
-  
-    let game_object_viewport = &mut Viewport{ x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 };
 
-    let l1_viewport = &mut Viewport{ x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0};
     let l1_update = &ViewportUpdate{dx: 0.5, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
-
-    let l2_viewport = &mut Viewport{ x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0};
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
-    let game_object = &mut GameObject{ x: 10.0, y: GROUND_Y, y_velocity: -10.0, x_velocity: 0.0};
+    let mut viewports = [
+        Viewport{viewport_type: ViewportType::LayerTwo, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0},
+        Viewport{viewport_type: ViewportType::LayerOne,  x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0}, 
+        Viewport{viewport_type: ViewportType::GameObject, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 },
+        Viewport{viewport_type: ViewportType::Obstacle, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 },
+    ];
+
+    let mut viewports_list: Vec<&mut Viewport> = viewports.iter_mut().collect();
+
+    let game_object = &mut GameObject{ x: 10.0, y: GROUND_Y, y_velocity: -10.0};
 
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
     ratatui::run(|terminal| loop {  
 
-        // if game_object.x_velocity >= 0.0{
-        //     game_object.x_velocity -= DT;
-        // }
+        if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {   
+            let l1_viewport = viewports_list
+                        .iter_mut()
+                        .find(|v| v.viewport_type.eq(&ViewportType::LayerOne))
+                        .unwrap();
 
-        if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {  
-            update_viewport(l1_viewport, l1_update); 
+
+            update_viewport(l1_viewport, l1_update);
+
+            let l2_viewport = viewports_list
+                .iter_mut()
+                .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
+                .unwrap();
+
             update_viewport(l2_viewport, l2_update);
+
             viewport_updated = Instant::now();  
         }  
+
         if event::poll(Duration::from_millis(10))? {
-            // An event is ready! Now we read it safely.
             if let Event::Key(key_event) = event::read()? {
                 if key_event.code == KeyCode::Char('q') {
                     println!("Quitting game!");
                     break Ok(());
                 } else if key_event.code == KeyCode::Char(' '){
                     game_object.y_velocity += 90.0;
-                    // game_object.x_velocity += 10.0; 
                 }
             }
         }
 
         update_position(game_object); 
 
-        let obstacle_viewport = &Viewport{
-            x0: game_object_viewport.x0, 
-            x1: game_object_viewport.x1,
-            y0: game_object_viewport.y0,
-            y1: game_object_viewport.y1
-        };
-
-        terminal.draw(|frame| render(frame, game_object, game_object_viewport, l1_viewport, l2_viewport, obstacle_viewport))?;  
+        terminal.draw(|frame| render(frame, game_object, &viewports_list))?;  
 
     })  
 }  
-  
-fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport, l1_viewport: &Viewport, l2_viewport: &mut Viewport, obsacle_viewport: &Viewport) {  
+
+fn render(frame: &mut Frame, game_object: &GameObject, viewports: &Vec<&mut Viewport>) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -129,10 +135,31 @@ fn render(frame: &mut Frame, game_object: &GameObject, game_viewport: &Viewport,
   
     frame.render_widget(title.centered(), top);  
 
+    let l1_viewport = viewports
+                        .iter()
+                        .find(|v| v.viewport_type.eq(&ViewportType::LayerOne))
+                        .unwrap();
+
+    let l2_viewport = viewports
+                        .iter()
+                        .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
+                        .unwrap();
+  
+    let game_viewport = viewports
+                        .iter()
+                        .find(|v| v.viewport_type.eq(&ViewportType::GameObject))
+                        .unwrap();
+
+    // let obstacle_viewport = viewports
+    //                         .iter()
+    //                         .find(|v| v.viewport_type.eq(&ViewportType::Obstacle))
+    //                         .unwrap();
+
     render_layer_one(frame, l1_viewport, area);  
     render_layer_two(frame, l2_viewport, area);
-    render_obstacles(frame, obsacle_viewport, area);
+    // render_obstacles(frame, obstacle_viewport, area);
     render_main_canvas(frame, game_object, game_viewport, area);  
+
 } 
 
 fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect) {
@@ -180,18 +207,10 @@ fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
 
 
     frame.render_widget(obstacles, area);
-
-
-
 }
 
-
-
-
- 
-
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
-    
+
     let background_canvas = Canvas::default()
         .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
         .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
@@ -200,7 +219,7 @@ fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect
             // value of r(radius) in the 50.0 - 80.0 range
             // x, y in the 150 - 310 float range, 
             // count in the 2 - 7 range
-        
+
             ctx.draw(&Circle{
                 color: Color::DarkGray, 
                 radius: 25.0, 
@@ -226,6 +245,7 @@ fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect
     frame.render_widget(background_canvas, area);
 }
   
+
 fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &Viewport, area: Rect) {  
     let canvas = Canvas::default()  
         .marker(symbols::Marker::HalfBlock)  
@@ -237,8 +257,8 @@ fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_v
             ctx.draw(&Line{
                 x1: game_object_viewport.x0,
                 x2: game_object_viewport.x1,
-                y1: -20.0, 
-                y2: -20.0, 
+                y1: -10.0, 
+                y2: -10.0, 
                 color: Color::DarkGray
             });
             ctx.draw(&Rectangle {  
@@ -251,5 +271,5 @@ fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_v
         });  
 
     
-    frame.render_widget(canvas, area);  
+    frame.render_widget(canvas, area);   
 }
