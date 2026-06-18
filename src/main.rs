@@ -19,7 +19,7 @@ const DT: f64 = 0.08;
 enum  ViewportType {
     LayerOne, 
     LayerTwo, 
-    GameObject, 
+    Player, 
     Obstacle,
 }
 
@@ -31,7 +31,7 @@ struct Viewport{
     y1: f64,  
 }
 
-struct GameObject{
+struct Player{
     x: f64, 
     y: f64, 
     y_velocity: f64,
@@ -44,6 +44,8 @@ struct ViewportUpdate{
     x1_default: f64,
 }
 
+
+
 fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
     if viewport.x0.abs() >= changes.x0_max{
         viewport.x0 = changes.x0_default;
@@ -55,12 +57,12 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 }
 
 
-fn update_position(game_object: &mut GameObject){
-    game_object.y_velocity -= GRAVITY * DT;
-    game_object.y += game_object.y_velocity * DT; 
-    if game_object.y <= GROUND_Y {
-        game_object.y = GROUND_Y;
-        game_object.y_velocity = 0.0;
+fn update_position(player: &mut Player){
+    player.y_velocity -= GRAVITY * DT;
+    player.y += player.y_velocity * DT; 
+    if player.y <= GROUND_Y {
+        player.y = GROUND_Y;
+        player.y_velocity = 0.0;
     }
 }
 
@@ -97,7 +99,7 @@ fn main() -> Result<()> {
             y1: 400.0
         },
         Viewport{
-            viewport_type: ViewportType::GameObject, 
+            viewport_type: ViewportType::Player, 
             x0: 0.0, 
             x1: 300.0, 
             y0: -300.0, 
@@ -114,7 +116,7 @@ fn main() -> Result<()> {
 
     let mut viewports_list: Vec<&mut Viewport> = viewports.iter_mut().collect();
 
-    let game_object = &mut GameObject{ 
+    let player = &mut Player{ 
         x: 10.0,
         y: GROUND_Y, 
         y_velocity: -10.0
@@ -150,19 +152,19 @@ fn main() -> Result<()> {
                     println!("Quitting game!");
                     break Ok(());
                 } else if key_event.code == KeyCode::Char(' '){
-                    game_object.y_velocity += 90.0;
+                    player.y_velocity += 90.0;
                 }
             }
         }
 
-        update_position(game_object); 
+        update_position(player); 
 
-        terminal.draw(|frame| render(frame, game_object, &viewports_list))?;  
+        terminal.draw(|frame| render(frame, player, &viewports_list))?;  
 
     })  
 }  
 
-fn render(frame: &mut Frame, game_object: &GameObject, viewports: &Vec<&mut Viewport>) {  
+fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -180,7 +182,7 @@ fn render(frame: &mut Frame, game_object: &GameObject, viewports: &Vec<&mut View
         match viewport.viewport_type {
             ViewportType::LayerOne => render_layer_one(frame, viewport, area),
             ViewportType::LayerTwo => render_layer_two(frame, viewport, area),
-            ViewportType::GameObject => render_main_canvas(frame, game_object, viewport, area),
+            ViewportType::Player => render_main_canvas(frame, player, viewport, area),
             ViewportType::Obstacle => render_obstacles(frame, viewport, area),
         }
 
@@ -239,8 +241,6 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
     frame.render_widget(layer_two, area);
 }
 
-
-
 fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
 
     let obstacles = Canvas::default()
@@ -260,24 +260,24 @@ fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
     frame.render_widget(obstacles, area);
 }
 
-fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &Viewport, area: Rect) {  
+fn render_main_canvas(frame: &mut Frame, player: &Player, player_viewport: &Viewport, area: Rect) {  
     let main_canvas = Canvas::default()  
         .marker(symbols::Marker::HalfBlock)  
         .block(Block::bordered().title("DinoTerm"))  
-        .x_bounds([game_object_viewport.x0, game_object_viewport.x1])  
-        .y_bounds([game_object_viewport.y0, game_object_viewport.y1]) 
+        .x_bounds([player_viewport.x0, player_viewport.x1])  
+        .y_bounds([player_viewport.y0, player_viewport.y1]) 
         .background_color(Color::Black)
         .paint(|ctx| {  
             ctx.draw(&Line{
-                x1: game_object_viewport.x0,
-                x2: game_object_viewport.x1,
+                x1: player_viewport.x0,
+                x2: player_viewport.x1,
                 y1: -10.0, 
                 y2: -10.0, 
                 color: Color::DarkGray
             });
             ctx.draw(&Rectangle {  
-                x: game_object.x, 
-                y: game_object.y,  
+                x: player.x, 
+                y: player.y,  
                 width: 10.0,  
                 height: 10.0,  
                 color: Color::LightYellow,  
