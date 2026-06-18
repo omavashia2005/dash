@@ -23,6 +23,34 @@ enum  ViewportType {
     Obstacle,
 }
 
+enum ObjectType{
+    Rectangle{
+        x: f64, 
+        y:f64,
+        width: f64, 
+        height: f64, 
+        color: Color
+    }, 
+    Circle{
+        x:f64,
+        y: f64, 
+        radius: f64, 
+        color: Color,
+    }, 
+    Line{
+        /// `x` of the starting point
+        x1: f64,
+        /// `y` of the starting point
+        y1: f64,
+        /// `x` of the ending point
+        x2: f64,
+        /// `y` of the ending point
+        y2: f64,
+        /// Color of the line
+        color: Color,
+    }, 
+}
+
 struct Viewport{
     viewport_type: ViewportType, 
     x0: f64,   
@@ -44,6 +72,13 @@ struct ViewportUpdate{
     x1_default: f64,
 }
 
+struct Object{
+    x: f64, 
+    y: f64, 
+    object_type: ObjectType, 
+    viewport: Viewport,
+    num_loops: Option<i32>,
+}
 
 
 fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
@@ -57,7 +92,7 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 }
 
 
-fn update_position(player: &mut Player){
+fn update_player_pos(player: &mut Player){
     player.y_velocity -= GRAVITY * DT;
     player.y += player.y_velocity * DT; 
     if player.y <= GROUND_Y {
@@ -132,17 +167,12 @@ fn main() -> Result<()> {
                                 .iter_mut()
                                 .find(|v| v.viewport_type.eq(&ViewportType::LayerOne))
                                 .unwrap();
-
-
             update_viewport(l1_viewport, l1_update);
-
             let l2_viewport = viewports_list
                                 .iter_mut()
                                 .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
                                 .unwrap();
-
             update_viewport(l2_viewport, l2_update);
-
             viewport_updated = Instant::now();  
         }  
 
@@ -156,9 +186,7 @@ fn main() -> Result<()> {
                 }
             }
         }
-
-        update_position(player); 
-
+        update_player_pos(player); 
         terminal.draw(|frame| render(frame, player, &viewports_list))?;  
 
     })  
@@ -188,6 +216,48 @@ fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {
 
     );
 } 
+
+
+fn renderer(frame: &mut Frame, object: &Object, area: Rect){
+
+    let entity = Canvas::default()
+        .x_bounds([object.viewport.x0, object.viewport.x1])
+        .y_bounds([object.viewport.y0, object.viewport.y1])
+        .paint(|ctx|{
+            match &object.object_type {
+                ObjectType::Rectangle { x, y, width, height, color } => {
+                    ctx.draw(&Rectangle{
+                        x: *x, 
+                        y: *y, 
+                        width: *width, 
+                        color: *color,
+                        height: *height
+                    })
+                },
+                ObjectType::Circle { x, y, radius, color } => {
+                    ctx.draw(&Circle{
+                        x: *x, 
+                        y: *y, 
+                        radius: *radius,
+                        color: *color,
+                    })
+                },
+                ObjectType::Line { x1, y1, x2, y2, color } => {
+                    ctx.draw(&Line{
+                        x1: *x1,
+                        x2: *x2, 
+                        y1: *y1, 
+                        y2: *y2,
+                        color: *color,
+                    })
+                },
+                
+            }
+        });
+
+    frame.render_widget(entity, area);
+}
+
 
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
     let layer_one = Canvas::default()
