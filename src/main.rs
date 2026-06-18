@@ -70,8 +70,8 @@ fn main() -> Result<()> {
     let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
 
     let mut viewports = [
-        Viewport{viewport_type: ViewportType::LayerTwo, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0},
-        Viewport{viewport_type: ViewportType::LayerOne,  x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0}, 
+        Viewport{viewport_type: ViewportType::LayerOne, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0},
+        Viewport{viewport_type: ViewportType::LayerTwo,  x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0}, 
         Viewport{viewport_type: ViewportType::GameObject, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 },
         Viewport{viewport_type: ViewportType::Obstacle, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 },
     ];
@@ -166,7 +166,7 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
     let start_x = -290.0;
     let y = -140.0;
     let width = 150.0;
-    let height = 120.0;
+    let height = 130.0;
     let count = 10;
     let background_canvas = Canvas::default()
         .x_bounds([layer_two_viewport.x0, layer_two_viewport.x1])
@@ -182,7 +182,6 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
                     color: Color::White,
                 });
             }
-            ctx.layer();
         });
 
     frame.render_widget(background_canvas, area);
