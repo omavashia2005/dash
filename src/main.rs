@@ -1,5 +1,6 @@
 use color_eyre::Result;
 use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
+use std::ptr::eq;
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
@@ -66,19 +67,58 @@ fn update_position(game_object: &mut GameObject){
 fn main() -> Result<()> {  
     color_eyre::install()?;  
 
-    let l1_update = &ViewportUpdate{dx: 0.5, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
-    let l2_update = &ViewportUpdate{dx: 10.0, x0_max: 600.0, x0_default:-300.0, x1_default:300.0 };
+    let l1_update = &ViewportUpdate{
+        dx: 0.5, 
+        x0_max: 600.0, 
+        x0_default:-300.0, 
+        x1_default:300.0 
+    };
+
+    let l2_update = &ViewportUpdate{
+        dx: 10.0, 
+        x0_max: 600.0, 
+        x0_default:-300.0, 
+        x1_default:300.0 
+    };
 
     let mut viewports = [
-        Viewport{viewport_type: ViewportType::LayerOne, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0},
-        Viewport{viewport_type: ViewportType::LayerTwo,  x0: -300.0, x1: 300.0, y0: -300.0, y1: 400.0}, 
-        Viewport{viewport_type: ViewportType::GameObject, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 },
-        Viewport{viewport_type: ViewportType::Obstacle, x0: 0.0, x1: 300.0, y0: -300.0, y1: 400.0 },
+        Viewport{
+            viewport_type: ViewportType::LayerOne, 
+            x0: 0.0, 
+            x1: 300.0,
+            y0: -300.0, 
+            y1: 400.0
+        },
+        Viewport{
+            viewport_type: ViewportType::LayerTwo,  
+            x0: -300.0, 
+            x1: 300.0, 
+            y0: -300.0, 
+            y1: 400.0
+        },
+        Viewport{
+            viewport_type: ViewportType::GameObject, 
+            x0: 0.0, 
+            x1: 300.0, 
+            y0: -300.0, 
+            y1: 400.0 
+        },
+        Viewport{
+            viewport_type: ViewportType::Obstacle, 
+            x0: 0.0, 
+            x1: 300.0, 
+            y0: -300.0, 
+            y1: 400.0 
+        },
     ];
 
     let mut viewports_list: Vec<&mut Viewport> = viewports.iter_mut().collect();
 
-    let game_object = &mut GameObject{ x: 10.0, y: GROUND_Y, y_velocity: -10.0};
+    let game_object = &mut GameObject{ 
+        x: 10.0,
+        y: GROUND_Y, 
+        y_velocity: -10.0
+    };
 
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
@@ -87,17 +127,17 @@ fn main() -> Result<()> {
 
         if viewport_updated.elapsed() >= VIEWPORT_UPDATE_INTERVAL {   
             let l1_viewport = viewports_list
-                        .iter_mut()
-                        .find(|v| v.viewport_type.eq(&ViewportType::LayerOne))
-                        .unwrap();
+                                .iter_mut()
+                                .find(|v| v.viewport_type.eq(&ViewportType::LayerOne))
+                                .unwrap();
 
 
             update_viewport(l1_viewport, l1_update);
 
             let l2_viewport = viewports_list
-                .iter_mut()
-                .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
-                .unwrap();
+                                .iter_mut()
+                                .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
+                                .unwrap();
 
             update_viewport(l2_viewport, l2_update);
 
@@ -150,14 +190,14 @@ fn render(frame: &mut Frame, game_object: &GameObject, viewports: &Vec<&mut View
                         .find(|v| v.viewport_type.eq(&ViewportType::GameObject))
                         .unwrap();
 
-    // let obstacle_viewport = viewports
-    //                         .iter()
-    //                         .find(|v| v.viewport_type.eq(&ViewportType::Obstacle))
-    //                         .unwrap();
+    let obstacle_viewport = viewports
+                            .iter()
+                            .find(|v| v.viewport_type.eq(&ViewportType::Obstacle))
+                            .unwrap();
 
     render_layer_one(frame, l1_viewport, area);  
     render_layer_two(frame, l2_viewport, area);
-    // render_obstacles(frame, obstacle_viewport, area);
+    render_obstacles(frame, obstacle_viewport, area);
     render_main_canvas(frame, game_object, game_viewport, area);  
 
 } 
@@ -168,7 +208,8 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
     let width = 150.0;
     let height = 130.0;
     let count = 10;
-    let background_canvas = Canvas::default()
+
+    let layer_two = Canvas::default()
         .x_bounds([layer_two_viewport.x0, layer_two_viewport.x1])
         .y_bounds([layer_two_viewport.y0, layer_two_viewport.y1])
         .paint(|ctx| {
@@ -184,7 +225,7 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
             }
         });
 
-    frame.render_widget(background_canvas, area);
+    frame.render_widget(layer_two, area);
 }
 
 
@@ -200,7 +241,7 @@ fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
                 y: 20.0, 
                 width: 20.0, 
                 height: 40.0,
-                color: Color::Cyan
+                color: Color::Black
             });
         });
 
@@ -210,7 +251,7 @@ fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
 
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
 
-    let background_canvas = Canvas::default()
+    let layer_one = Canvas::default()
         .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
         .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
         .paint(|ctx|{
@@ -241,12 +282,12 @@ fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect
                 coords: &[(-200.0, 200.0)]
             });
         });
-    frame.render_widget(background_canvas, area);
+    frame.render_widget(layer_one, area);
 }
   
 
 fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &Viewport, area: Rect) {  
-    let canvas = Canvas::default()  
+    let main_canvas = Canvas::default()  
         .marker(symbols::Marker::HalfBlock)  
         .block(Block::bordered().title("DinoTerm"))  
         .x_bounds([game_object_viewport.x0, game_object_viewport.x1])  
@@ -270,5 +311,5 @@ fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_v
         });  
 
     
-    frame.render_widget(canvas, area);   
+    frame.render_widget(main_canvas, area);   
 }
