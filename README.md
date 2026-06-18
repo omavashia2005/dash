@@ -1,2 +1,2 @@
-### Dino Game in Terminal Using Rust
+[WIP] Geometry Dash game in Terminal Using Rust
 
