@@ -175,31 +175,16 @@ fn render(frame: &mut Frame, game_object: &GameObject, viewports: &Vec<&mut View
   
     frame.render_widget(title.centered(), top);  
 
-    let l1_viewport = viewports
-                        .iter()
-                        .find(|v| v.viewport_type.eq(&ViewportType::LayerOne))
-                        .unwrap();
+    viewports.iter().for_each(|viewport|
 
-    let l2_viewport = viewports
-                        .iter()
-                        .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
-                        .unwrap();
-  
-    let game_viewport = viewports
-                        .iter()
-                        .find(|v| v.viewport_type.eq(&ViewportType::GameObject))
-                        .unwrap();
+        match viewport.viewport_type {
+            ViewportType::LayerOne => render_layer_one(frame, viewport, area),
+            ViewportType::LayerTwo => render_layer_two(frame, viewport, area),
+            ViewportType::GameObject => render_main_canvas(frame, game_object, viewport, area),
+            ViewportType::Obstacle => render_obstacles(frame, viewport, area),
+        }
 
-    let obstacle_viewport = viewports
-                            .iter()
-                            .find(|v| v.viewport_type.eq(&ViewportType::Obstacle))
-                            .unwrap();
-
-    render_layer_one(frame, l1_viewport, area);  
-    render_layer_two(frame, l2_viewport, area);
-    render_obstacles(frame, obstacle_viewport, area);
-    render_main_canvas(frame, game_object, game_viewport, area);  
-
+    );
 } 
 
 fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect) {
