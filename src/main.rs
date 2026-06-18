@@ -1,6 +1,5 @@
 use color_eyre::Result;
 use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
-use std::ptr::eq;
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
 use ratatui::widgets::Block;  
@@ -9,6 +8,12 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Stylize};  
 use ratatui::text::{Line as TextLine, Span};  
 use ratatui::Frame;  
+
+
+const GROUND_Y:f64 = -10.0;
+const GRAVITY: f64 = 60.0;
+const DT: f64 = 0.08;
+
 
 #[derive(PartialEq, Eq)]
 enum  ViewportType {
@@ -33,10 +38,10 @@ struct GameObject{
 }
 
 struct ViewportUpdate{
-        dx: f64,
-        x0_max: f64,
-        x0_default: f64,
-        x1_default: f64,
+    dx: f64,
+    x0_max: f64,
+    x0_default: f64,
+    x1_default: f64,
 }
 
 fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
@@ -49,15 +54,10 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
     }
 }
 
-const GROUND_Y:f64 = -10.0;
-const GRAVITY: f64 = 60.0;
-const DT: f64 = 0.08;
 
 fn update_position(game_object: &mut GameObject){
-
     game_object.y_velocity -= GRAVITY * DT;
-    game_object.y += game_object.y_velocity * DT;
- 
+    game_object.y += game_object.y_velocity * DT; 
     if game_object.y <= GROUND_Y {
         game_object.y = GROUND_Y;
         game_object.y_velocity = 0.0;
@@ -187,6 +187,32 @@ fn render(frame: &mut Frame, game_object: &GameObject, viewports: &Vec<&mut View
     );
 } 
 
+fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
+    let layer_one = Canvas::default()
+        .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
+        .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
+        .paint(|ctx|{
+            ctx.draw(&Circle{
+                color: Color::DarkGray, 
+                radius: 25.0, 
+                x: 400.0,
+                y: 300.0
+            });
+            ctx.draw(&Circle{
+                color: Color::DarkGray, 
+                radius: 70.0, 
+                x: 100.0,
+                y: 200.0
+            });
+            ctx.layer();
+            ctx.draw(&Points{
+                color: Color::White, 
+                coords: &[(-200.0, 200.0)]
+            });
+        });
+    frame.render_widget(layer_one, area);
+}
+
 fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect) {
     let start_x = -290.0;
     let y = -140.0;
@@ -234,43 +260,6 @@ fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
     frame.render_widget(obstacles, area);
 }
 
-fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
-
-    let layer_one = Canvas::default()
-        .x_bounds([layer_one_viewport.x0, layer_one_viewport.x1])
-        .y_bounds([layer_one_viewport.y0, layer_one_viewport.y1])
-        .paint(|ctx|{
-            // rng to generate different values of 
-            // value of r(radius) in the 50.0 - 80.0 range
-            // x, y in the 150 - 310 float range, 
-            // count in the 2 - 7 range
-
-            ctx.draw(&Circle{
-                color: Color::DarkGray, 
-                radius: 25.0, 
-                x: 400.0,
-                y: 300.0
-            });
-            ctx.draw(&Circle{
-                color: Color::DarkGray, 
-                radius: 70.0, 
-                x: 100.0,
-                y: 200.0
-            });
-            ctx.layer();
-            // rng to generate different values of 
-            // x, y in the 150 - 310 float range, 
-            // count in the 15 - 50 range
-
-            ctx.draw(&Points{
-                color: Color::White, 
-                coords: &[(-200.0, 200.0)]
-            });
-        });
-    frame.render_widget(layer_one, area);
-}
-  
-
 fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_viewport: &Viewport, area: Rect) {  
     let main_canvas = Canvas::default()  
         .marker(symbols::Marker::HalfBlock)  
@@ -293,8 +282,6 @@ fn render_main_canvas(frame: &mut Frame, game_object: &GameObject, game_object_v
                 height: 10.0,  
                 color: Color::LightYellow,  
             }); 
-        });  
-
-    
+        });   
     frame.render_widget(main_canvas, area);   
 }
