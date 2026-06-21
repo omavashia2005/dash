@@ -97,7 +97,12 @@ fn update_player_pos(player: &mut Player, game_info: &mut GameInfo){
 
     if player.x <= PLAYER_X0 || player.x >= PLAYER_X1{
         game_info.boundary_collisions += 1;
-        player.x = player.x.clamp(PLAYER_X0, PLAYER_X1 - 3.0);
+
+        if player.x <= PLAYER_X0{
+            player.x = PLAYER_X0;
+        } else if player.x >= PLAYER_X1 {  
+            player.x = PLAYER_X1;
+        }
     }
 
     if player.y <= GROUND_Y {
