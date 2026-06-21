@@ -73,7 +73,7 @@ struct Object{
     num_loops: Option<i32>,
 }
 
-
+#[derive(Debug)]
 struct GameInfo{
     num_jumps: i64, 
     boundary_collisions: i64
@@ -95,8 +95,9 @@ fn update_player_pos(player: &mut Player, game_info: &mut GameInfo){
     player.y += player.y_velocity * DT; 
     player.x += player.y_velocity * DT; 
 
-    if player.x == PLAYER_X0 || player.x == PLAYER_X1{
+    if player.x <= PLAYER_X0 || player.x >= PLAYER_X1{
         game_info.boundary_collisions += 1;
+        player.x = player.x.clamp(PLAYER_X0, PLAYER_X1 - 3.0);
     }
 
     if player.y <= GROUND_Y {
@@ -178,17 +179,20 @@ fn main() -> Result<()> {
             viewport_updated = Instant::now();  
         }  
 
-        if event::poll(Duration::from_millis(10))? {
-            if let Event::Key(key_event) = event::read()? {
-                if key_event.code == KeyCode::Char('q') {
-                    println!("Quitting game!");
+        if event::poll(Duration::from_millis(10))?  && let Event::Key(key_event) = event::read()?{
+            match key_event.code {
+                KeyCode::Char('q') => {
+                    let _ = std::fs::write("score.txt", format!("{:?}", game_info));
                     break Ok(());
-                } else if key_event.code == KeyCode::Char(' '){
+                }
+                KeyCode::Char(' ') => {
                     player.y_velocity += 90.0;
                     game_info.num_jumps += 1;
                 }
+                _ => {}
             }
         }
+
 
         update_player_pos(player, &mut game_info); 
 
