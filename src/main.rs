@@ -13,7 +13,8 @@ use ratatui::Frame;
 const GROUND_Y:f64 = 0.0;
 const GRAVITY: f64 = 50.0;
 const DT: f64 = 0.08;
-
+const PLAYER_X0: f64 = 0.0; 
+const PLAYER_X1: f64 = 300.0; 
 
 #[derive(PartialEq, Eq)]
 enum  ViewportType {
@@ -73,6 +74,11 @@ struct Object{
 }
 
 
+struct GameInfo{
+    num_jumps: i64, 
+    boundary_collisions: i64
+}
+
 fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
     if viewport.x0.abs() >= changes.x0_max{
         viewport.x0 = changes.x0_default;
@@ -84,10 +90,14 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 }
 
 
-fn update_player_pos(player: &mut Player){
+fn update_player_pos(player: &mut Player, game_info: &mut GameInfo){
     player.y_velocity -= GRAVITY * DT;
     player.y += player.y_velocity * DT; 
     player.x += player.y_velocity * DT; 
+
+    if player.x == PLAYER_X0 || player.x == PLAYER_X1{
+        game_info.boundary_collisions += 1;
+    }
 
     if player.y <= GROUND_Y {
         player.y = GROUND_Y;
@@ -112,6 +122,11 @@ fn main() -> Result<()> {
         x1_default:300.0 
     };
 
+    let mut game_info = GameInfo{
+        num_jumps: 0, 
+        boundary_collisions: 0, 
+    };
+
     let mut viewports = [
         Viewport{
             viewport_type: ViewportType::LayerOne, 
@@ -129,8 +144,8 @@ fn main() -> Result<()> {
         },
         Viewport{
             viewport_type: ViewportType::Player, 
-            x0: 0.0, 
-            x1: 300.0, 
+            x0: PLAYER_X0, 
+            x1: PLAYER_X1, 
             y0: -300.0, 
             y1: 400.0 
         },
@@ -170,12 +185,12 @@ fn main() -> Result<()> {
                     break Ok(());
                 } else if key_event.code == KeyCode::Char(' '){
                     player.y_velocity += 90.0;
+                    game_info.num_jumps += 1;
                 }
             }
         }
 
-        update_player_pos(player); 
-
+        update_player_pos(player, &mut game_info); 
 
         let test_object = &mut Object{
             object_type: ObjectType::Rectangle { x: 30.0, y: 20.0, width: 10.0, height: 10.0, color: Color::Red},
