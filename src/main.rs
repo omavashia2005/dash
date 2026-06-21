@@ -10,8 +10,8 @@ use ratatui::text::{Line as TextLine, Span};
 use ratatui::Frame;  
 
 
-const GROUND_Y:f64 = -10.0;
-const GRAVITY: f64 = 60.0;
+const GROUND_Y:f64 = 0.0;
+const GRAVITY: f64 = 50.0;
 const DT: f64 = 0.08;
 
 
@@ -20,7 +20,6 @@ enum  ViewportType {
     LayerOne, 
     LayerTwo, 
     Player, 
-    Obstacle,
 }
 
 enum ObjectType{
@@ -38,15 +37,10 @@ enum ObjectType{
         color: Color,
     }, 
     Line{
-        /// `x` of the starting point
         x1: f64,
-        /// `y` of the starting point
         y1: f64,
-        /// `x` of the ending point
         x2: f64,
-        /// `y` of the ending point
         y2: f64,
-        /// Color of the line
         color: Color,
     }, 
 }
@@ -73,8 +67,6 @@ struct ViewportUpdate{
 }
 
 struct Object{
-    x: f64, 
-    y: f64, 
     object_type: ObjectType, 
     viewport: Viewport,
     num_loops: Option<i32>,
@@ -95,6 +87,8 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 fn update_player_pos(player: &mut Player){
     player.y_velocity -= GRAVITY * DT;
     player.y += player.y_velocity * DT; 
+    player.x += player.y_velocity * DT; 
+
     if player.y <= GROUND_Y {
         player.y = GROUND_Y;
         player.y_velocity = 0.0;
@@ -140,21 +134,14 @@ fn main() -> Result<()> {
             y0: -300.0, 
             y1: 400.0 
         },
-        Viewport{
-            viewport_type: ViewportType::Obstacle, 
-            x0: 0.0, 
-            x1: 300.0, 
-            y0: -300.0, 
-            y1: 400.0 
-        },
     ];
 
     let mut viewports_list: Vec<&mut Viewport> = viewports.iter_mut().collect();
 
     let player = &mut Player{ 
-        x: 10.0,
+        x: 30.0,
         y: GROUND_Y, 
-        y_velocity: -10.0
+        y_velocity: -20.0
     };
 
     let mut viewport_updated = Instant::now();  
@@ -186,13 +173,28 @@ fn main() -> Result<()> {
                 }
             }
         }
+
         update_player_pos(player); 
-        terminal.draw(|frame| render(frame, player, &viewports_list))?;  
+
+
+        let test_object = &mut Object{
+            object_type: ObjectType::Rectangle { x: 30.0, y: 20.0, width: 10.0, height: 10.0, color: Color::Red},
+            viewport: Viewport{
+                    viewport_type: ViewportType::LayerTwo,  
+                    x0: -300.0, 
+                    x1: 300.0, 
+                    y0: -300.0, 
+                    y1: 400.0
+            },
+            num_loops: None,
+        };
+
+        terminal.draw(|frame| render(frame, player, &viewports_list, test_object))?;  
 
     })  
 }  
 
-fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {  
+fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>, object: &Object) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -211,10 +213,11 @@ fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {
             ViewportType::LayerOne => render_layer_one(frame, viewport, area),
             ViewportType::LayerTwo => render_layer_two(frame, viewport, area),
             ViewportType::Player => render_main_canvas(frame, player, viewport, area),
-            ViewportType::Obstacle => render_obstacles(frame, viewport, area),
         }
 
     );
+
+    // renderer(frame, object, area);
 } 
 
 
@@ -311,40 +314,14 @@ fn render_layer_two(frame: &mut Frame, layer_two_viewport: &Viewport, area: Rect
     frame.render_widget(layer_two, area);
 }
 
-fn render_obstacles(frame: &mut Frame, obsacle_viewport: &Viewport, area: Rect){
-
-    let obstacles = Canvas::default()
-        .x_bounds([obsacle_viewport.x0, obsacle_viewport.x1])
-        .y_bounds([obsacle_viewport.y0, obsacle_viewport.y1])
-        .paint(|ctx| {
-            ctx.draw(&Rectangle{
-                x: 10.0, 
-                y: 20.0, 
-                width: 20.0, 
-                height: 40.0,
-                color: Color::Black
-            });
-        });
-
-
-    frame.render_widget(obstacles, area);
-}
-
 fn render_main_canvas(frame: &mut Frame, player: &Player, player_viewport: &Viewport, area: Rect) {  
     let main_canvas = Canvas::default()  
-        .marker(symbols::Marker::HalfBlock)  
+        .marker(symbols::Marker::Block)  
         .block(Block::bordered().title("DinoTerm"))  
         .x_bounds([player_viewport.x0, player_viewport.x1])  
         .y_bounds([player_viewport.y0, player_viewport.y1]) 
         .background_color(Color::Black)
         .paint(|ctx| {  
-            ctx.draw(&Line{
-                x1: player_viewport.x0,
-                x2: player_viewport.x1,
-                y1: -10.0, 
-                y2: -10.0, 
-                color: Color::DarkGray
-            });
             ctx.draw(&Rectangle {  
                 x: player.x, 
                 y: player.y,  
@@ -352,6 +329,16 @@ fn render_main_canvas(frame: &mut Frame, player: &Player, player_viewport: &View
                 height: 10.0,  
                 color: Color::LightYellow,  
             }); 
+            ctx.layer();
+            ctx.marker(symbols::Marker::HalfBlock);
+            ctx.draw(&Line{
+                x1: player_viewport.x0,
+                x2: player_viewport.x1,
+                y1: -10.0, 
+                y2: -10.0, 
+                color: Color::DarkGray
+            });
         });   
     frame.render_widget(main_canvas, area);   
+
 }
