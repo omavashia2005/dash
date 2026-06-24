@@ -9,41 +9,21 @@ use ratatui::style::{Color, Stylize};
 use ratatui::text::{Line as TextLine, Span};  
 use ratatui::Frame;  
 
-
 const GROUND_Y:f64 = 0.0;
+const SKY_Y: f64 = 400.0;
 const GRAVITY: f64 = 50.0;
 const DT: f64 = 0.08;
 const PLAYER_X0: f64 = 0.0; 
 const PLAYER_X1: f64 = 300.0; 
+const OBSTACLE_X0: f64 = 10.0; 
+const OBSTACLE_X1: f64 = 250.0; 
 
 #[derive(PartialEq, Eq)]
 enum  ViewportType {
     LayerOne, 
     LayerTwo, 
     Player, 
-}
-
-enum ObjectType{
-    Rectangle{
-        x: f64, 
-        y:f64,
-        width: f64, 
-        height: f64, 
-        color: Color
-    }, 
-    Circle{
-        x:f64,
-        y: f64, 
-        radius: f64, 
-        color: Color,
-    }, 
-    Line{
-        x1: f64,
-        y1: f64,
-        x2: f64,
-        y2: f64,
-        color: Color,
-    }, 
+    Obstacle,
 }
 
 struct Viewport{
@@ -67,18 +47,6 @@ struct ViewportUpdate{
     x1_default: f64,
 }
 
-struct Object{
-    object_type: ObjectType, 
-    viewport: Viewport,
-    num_loops: Option<i32>,
-}
-
-#[derive(Debug)]
-struct GameInfo{
-    num_jumps: i64, 
-    boundary_collisions: i64
-}
-
 fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
     if viewport.x0.abs() >= changes.x0_max{
         viewport.x0 = changes.x0_default;
@@ -90,22 +58,11 @@ fn update_viewport(viewport: &mut Viewport, changes: &ViewportUpdate){
 }
 
 
-fn update_player_pos(player: &mut Player, game_info: &mut GameInfo){
+fn update_player_pos(player: &mut Player){
     player.y_velocity -= GRAVITY * DT;
-    player.y += player.y_velocity * DT; 
-    player.x += player.y_velocity * DT; 
+    player.y += player.y_velocity * DT;    
 
-    if player.x <= PLAYER_X0 || player.x >= PLAYER_X1{
-        game_info.boundary_collisions += 1;
-
-        if player.x <= PLAYER_X0{
-            player.x = PLAYER_X0;
-        } else if player.x >= PLAYER_X1 {  
-            player.x = PLAYER_X1;
-        }
-    }
-
-    if player.y <= GROUND_Y {
+    if player.y <= GROUND_Y{
         player.y = GROUND_Y;
         player.y_velocity = 0.0;
     }
@@ -128,9 +85,11 @@ fn main() -> Result<()> {
         x1_default:300.0 
     };
 
-    let mut game_info = GameInfo{
-        num_jumps: 0, 
-        boundary_collisions: 0, 
+    let obstacle_update = &ViewportUpdate{
+        dx: 5.0,
+        x0_max: 600.0, 
+        x0_default:-300.0, 
+        x1_default:300.0 
     };
 
     let mut viewports = [
@@ -153,7 +112,14 @@ fn main() -> Result<()> {
             x0: PLAYER_X0, 
             x1: PLAYER_X1, 
             y0: -300.0, 
-            y1: 400.0 
+            y1: SKY_Y
+        },  
+        Viewport{
+            viewport_type: ViewportType::Obstacle, 
+            x0: OBSTACLE_X0,
+            x1: OBSTACLE_X1, 
+            y0: -300.0, 
+            y1: SKY_Y
         },
     ];
 
@@ -181,44 +147,33 @@ fn main() -> Result<()> {
                                 .find(|v| v.viewport_type.eq(&ViewportType::LayerTwo))
                                 .unwrap();
             update_viewport(l2_viewport, l2_update);
+            let obstacle_viewport = viewports_list
+                                .iter_mut()
+                                .find(|v| v.viewport_type.eq(&ViewportType::Obstacle))
+                                .unwrap();
+            update_viewport(obstacle_viewport, obstacle_update);
             viewport_updated = Instant::now();  
         }  
 
         if event::poll(Duration::from_millis(10))?  && let Event::Key(key_event) = event::read()?{
             match key_event.code {
                 KeyCode::Char('q') => {
-                    let _ = std::fs::write("score.txt", format!("{:?}", game_info));
                     break Ok(());
                 }
                 KeyCode::Char(' ') => {
                     player.y_velocity += 90.0;
-                    game_info.num_jumps += 1;
                 }
                 _ => {}
             }
         }
 
-
-        update_player_pos(player, &mut game_info); 
-
-        let test_object = &mut Object{
-            object_type: ObjectType::Rectangle { x: 30.0, y: 20.0, width: 10.0, height: 10.0, color: Color::Red},
-            viewport: Viewport{
-                    viewport_type: ViewportType::LayerTwo,  
-                    x0: -300.0, 
-                    x1: 300.0, 
-                    y0: -300.0, 
-                    y1: 400.0
-            },
-            num_loops: None,
-        };
-
-        terminal.draw(|frame| render(frame, player, &viewports_list, test_object))?;  
+        update_player_pos(player); 
+        terminal.draw(|frame| render(frame, player, &viewports_list))?;  
 
     })  
 }  
 
-fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>, object: &Object) {  
+fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -237,54 +192,35 @@ fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>, ob
             ViewportType::LayerOne => render_layer_one(frame, viewport, area),
             ViewportType::LayerTwo => render_layer_two(frame, viewport, area),
             ViewportType::Player => render_main_canvas(frame, player, viewport, area),
+            ViewportType::Obstacle => render_obstacle(frame, viewport, area),
         }
 
     );
-
-    // renderer(frame, object, area);
 } 
 
+fn render_obstacle(frame: &mut Frame, obstacle_viewport: &Viewport, area: Rect){
+    let start_x = 50.0;
+    let y = 0.0;
+    let count = 10;
 
-fn renderer(frame: &mut Frame, object: &Object, area: Rect){
-
-    let entity = Canvas::default()
-        .x_bounds([object.viewport.x0, object.viewport.x1])
-        .y_bounds([object.viewport.y0, object.viewport.y1])
-        .paint(|ctx|{
-            match &object.object_type {
-                ObjectType::Rectangle { x, y, width, height, color } => {
-                    ctx.draw(&Rectangle{
-                        x: *x, 
-                        y: *y, 
-                        width: *width, 
-                        color: *color,
-                        height: *height
-                    })
-                },
-                ObjectType::Circle { x, y, radius, color } => {
-                    ctx.draw(&Circle{
-                        x: *x, 
-                        y: *y, 
-                        radius: *radius,
-                        color: *color,
-                    })
-                },
-                ObjectType::Line { x1, y1, x2, y2, color } => {
-                    ctx.draw(&Line{
-                        x1: *x1,
-                        x2: *x2, 
-                        y1: *y1, 
-                        y2: *y2,
-                        color: *color,
-                    })
-                },
-                
+    let obstacle_canvas = Canvas::default()  
+        .marker(symbols::Marker::Block)  
+        .x_bounds([obstacle_viewport.x0, obstacle_viewport.x1])  
+        .y_bounds([obstacle_viewport.y0, obstacle_viewport.y1]) 
+        .paint(|ctx| {  
+            ctx.layer();
+            for i in 0..count {
+                ctx.draw(&Rectangle {
+                    x: start_x + (i as f64),
+                    y,
+                    width: 10.0,
+                    height: 10.0,
+                    color: Color::LightBlue,
+                });
             }
-        });
-
-    frame.render_widget(entity, area);
+        });   
+    frame.render_widget(obstacle_canvas, area);   
 }
-
 
 fn render_layer_one(frame: &mut Frame, layer_one_viewport: &Viewport, area: Rect){
     let layer_one = Canvas::default()
