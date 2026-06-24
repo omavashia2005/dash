@@ -40,6 +40,16 @@ struct Player{
     y_velocity: f64,
 }
 
+
+struct Obstacle{
+    x: f64, 
+    y: f64,
+    y_velocity: f64,
+    count: i32, 
+    width: f64, 
+    height: f64,
+}
+
 struct ViewportUpdate{
     dx: f64,
     x0_max: f64,
@@ -131,6 +141,16 @@ fn main() -> Result<()> {
         y_velocity: -20.0
     };
 
+
+    let obstacle = &mut Obstacle{
+        x: 50.0, 
+        y: GROUND_Y, 
+        y_velocity: -20.0, 
+        count: 3, 
+        width: 10.0, 
+        height: 10.0,
+    };
+
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
@@ -168,12 +188,12 @@ fn main() -> Result<()> {
         }
 
         update_player_pos(player); 
-        terminal.draw(|frame| render(frame, player, &viewports_list))?;  
+        terminal.draw(|frame| render(frame, player, obstacle, &viewports_list))?;  
 
     })  
 }  
 
-fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {  
+fn render(frame: &mut Frame, player: &Player, obstacle: &Obstacle, viewports: &Vec<&mut Viewport>) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -192,27 +212,23 @@ fn render(frame: &mut Frame, player: &Player, viewports: &Vec<&mut Viewport>) {
             ViewportType::LayerOne => render_layer_one(frame, viewport, area),
             ViewportType::LayerTwo => render_layer_two(frame, viewport, area),
             ViewportType::Player => render_main_canvas(frame, player, viewport, area),
-            ViewportType::Obstacle => render_obstacle(frame, viewport, area),
+            ViewportType::Obstacle => render_obstacle(frame, obstacle, viewport, area),
         }
 
     );
 } 
 
-fn render_obstacle(frame: &mut Frame, obstacle_viewport: &Viewport, area: Rect){
-    let start_x = 50.0;
-    let y = 0.0;
-    let count = 10;
-
+fn render_obstacle(frame: &mut Frame, obstacle: &Obstacle, obstacle_viewport: &Viewport, area: Rect){
     let obstacle_canvas = Canvas::default()  
         .marker(symbols::Marker::Block)  
         .x_bounds([obstacle_viewport.x0, obstacle_viewport.x1])  
         .y_bounds([obstacle_viewport.y0, obstacle_viewport.y1]) 
         .paint(|ctx| {  
             ctx.layer();
-            for i in 0..count {
+            for _ in 0..obstacle.count {
                 ctx.draw(&Rectangle {
-                    x: start_x + (i as f64),
-                    y,
+                    x: obstacle.x,
+                    y: obstacle.y,
                     width: 10.0,
                     height: 10.0,
                     color: Color::LightBlue,
