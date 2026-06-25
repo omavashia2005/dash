@@ -11,7 +11,7 @@ use ratatui::Frame;
 
 const GROUND_Y:f64 = 0.0;
 const SKY_Y: f64 = 400.0;
-const GRAVITY: f64 = 50.0;
+const GRAVITY: f64 = 70.0;
 const DT: f64 = 0.08;
 const PLAYER_X0: f64 = 0.0; 
 const PLAYER_X1: f64 = 300.0; 
@@ -45,6 +45,7 @@ struct Obstacle{
     x: f64, 
     y: f64,
     y_velocity: f64,
+    rep_factor: i32, 
     count: i32, 
     width: f64, 
     height: f64,
@@ -146,7 +147,8 @@ fn main() -> Result<()> {
         x: 50.0, 
         y: GROUND_Y, 
         y_velocity: -20.0, 
-        count: 3, 
+        rep_factor: 29, 
+        count: 5, 
         width: 10.0, 
         height: 10.0,
     };
@@ -225,12 +227,12 @@ fn render_obstacle(frame: &mut Frame, obstacle: &Obstacle, obstacle_viewport: &V
         .y_bounds([obstacle_viewport.y0, obstacle_viewport.y1]) 
         .paint(|ctx| {  
             ctx.layer();
-            for _ in 0..obstacle.count {
+            for i in 0..obstacle.count {
                 ctx.draw(&Rectangle {
-                    x: obstacle.x,
+                    x: obstacle.x + (obstacle.rep_factor * i) as f64,
                     y: obstacle.y,
-                    width: 10.0,
-                    height: 10.0,
+                    width: obstacle.width,
+                    height: obstacle.height,
                     color: Color::LightBlue,
                 });
             }
