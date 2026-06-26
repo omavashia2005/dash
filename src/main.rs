@@ -1,4 +1,5 @@
 use color_eyre::Result;
+use rand::rng;
 use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
@@ -143,16 +144,31 @@ fn main() -> Result<()> {
     };
 
 
+    use rand::prelude::*;
+
+    let mut rng = rand::rng();
+    //
+
     let obstacle = &mut Obstacle{
-        x: 50.0, 
+        x: rng.random_range(50.0..70.0), 
         y: GROUND_Y, 
         y_velocity: -20.0, 
-        rep_factor: 29, 
-        count: 5, 
-        width: 10.0, 
-        height: 10.0,
+        rep_factor: rng.random_range(29..40), 
+        count: rng.random_range(2..7), 
+        width: rng.random_range(10.0..25.0), 
+        height: rng.random_range(10.0..25.0), 
     };
-
+    
+    // let obstacle = &mut Obstacle{
+    //     x: 50.0, 
+    //     y: GROUND_Y, 
+    //     y_velocity: -20.0, 
+    //     rep_factor: 30, 
+    //     count: 5, 
+    //     width: 10.0, 
+    //     height: 10.0, 
+    // };
+    //
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
