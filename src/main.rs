@@ -1,5 +1,6 @@
 use color_eyre::Result;
 use rand::rng;
+use rand::prelude::*;
 use ratatui::widgets::canvas::{Canvas, Circle, Line, Points, Rectangle};  
 use std::time::{Duration, Instant};  
 use ratatui::symbols;  
@@ -144,31 +145,20 @@ fn main() -> Result<()> {
     };
 
 
-    use rand::prelude::*;
 
     let mut rng = rand::rng();
-    //
+   
 
     let obstacle = &mut Obstacle{
-        x: rng.random_range(50.0..70.0), 
+        x: 310.0, 
         y: GROUND_Y, 
         y_velocity: -20.0, 
-        rep_factor: rng.random_range(29..40), 
+        rep_factor: rng.random_range(2..5), 
         count: rng.random_range(2..7), 
         width: rng.random_range(10.0..25.0), 
         height: rng.random_range(10.0..25.0), 
     };
     
-    // let obstacle = &mut Obstacle{
-    //     x: 50.0, 
-    //     y: GROUND_Y, 
-    //     y_velocity: -20.0, 
-    //     rep_factor: 30, 
-    //     count: 5, 
-    //     width: 10.0, 
-    //     height: 10.0, 
-    // };
-    //
     let mut viewport_updated = Instant::now();  
     const VIEWPORT_UPDATE_INTERVAL: Duration = Duration::from_millis(20);
 
@@ -189,6 +179,7 @@ fn main() -> Result<()> {
                                 .iter_mut()
                                 .find(|v| v.viewport_type.eq(&ViewportType::Obstacle))
                                 .unwrap();
+
             update_viewport(obstacle_viewport, obstacle_update);
             viewport_updated = Instant::now();  
         }  
@@ -206,12 +197,15 @@ fn main() -> Result<()> {
         }
 
         update_player_pos(player); 
+
         terminal.draw(|frame| render(frame, player, obstacle, &viewports_list))?;  
 
     })  
+
+    
 }  
 
-fn render(frame: &mut Frame, player: &Player, obstacle: &Obstacle, viewports: &Vec<&mut Viewport>) {  
+fn render(frame: &mut Frame, player: &Player, obstacle: &mut Obstacle, viewports: &Vec<&mut Viewport>) {  
     let vertical = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).spacing(1);  
     let horizontal = Layout::horizontal([Constraint::Percentage(100)]).spacing(1);  
     let [top, main] = frame.area().layout(&vertical);  
@@ -236,16 +230,16 @@ fn render(frame: &mut Frame, player: &Player, obstacle: &Obstacle, viewports: &V
     );
 } 
 
-fn render_obstacle(frame: &mut Frame, obstacle: &Obstacle, obstacle_viewport: &Viewport, area: Rect){
+fn render_obstacle(frame: &mut Frame, obstacle: &mut Obstacle, obstacle_viewport: &Viewport, area: Rect){
     let obstacle_canvas = Canvas::default()  
         .marker(symbols::Marker::Block)  
         .x_bounds([obstacle_viewport.x0, obstacle_viewport.x1])  
         .y_bounds([obstacle_viewport.y0, obstacle_viewport.y1]) 
         .paint(|ctx| {  
             ctx.layer();
-            for i in 0..obstacle.count {
+            for i in 0..obstacle.rep_factor {
                 ctx.draw(&Rectangle {
-                    x: obstacle.x + (obstacle.rep_factor * i) as f64,
+                    x: obstacle.x + (obstacle.count * i) as f64,
                     y: obstacle.y,
                     width: obstacle.width,
                     height: obstacle.height,
