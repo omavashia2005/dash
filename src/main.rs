@@ -42,12 +42,10 @@ struct Player{
     y_velocity: f64,
 }
 
-
 struct Obstacle{
     x: f64, 
     y: f64,
-    y_velocity: f64,
-    rep_factor: i32, 
+    distance: i32, 
     count: i32, 
     width: f64, 
     height: f64,
@@ -150,13 +148,12 @@ fn main() -> Result<()> {
    
 
     let obstacle = &mut Obstacle{
-        x: 310.0, 
+        x: OBSTACLE_X1 - 10.0, 
         y: GROUND_Y, 
-        y_velocity: -20.0, 
-        rep_factor: rng.random_range(2..5), 
+        distance: rng.random_range(30..50), 
         count: rng.random_range(2..7), 
-        width: rng.random_range(10.0..25.0), 
-        height: rng.random_range(10.0..25.0), 
+        width: 10.0, // rng.random_range(10.0..25.0), 
+        height: 10.0, // rng.random_range(10.0..25.0), 
     };
     
     let mut viewport_updated = Instant::now();  
@@ -237,9 +234,9 @@ fn render_obstacle(frame: &mut Frame, obstacle: &mut Obstacle, obstacle_viewport
         .y_bounds([obstacle_viewport.y0, obstacle_viewport.y1]) 
         .paint(|ctx| {  
             ctx.layer();
-            for i in 0..obstacle.rep_factor {
+            for i in 0..=obstacle.count {
                 ctx.draw(&Rectangle {
-                    x: obstacle.x + (obstacle.count * i) as f64,
+                    x: obstacle.x  - (obstacle.distance * i) as f64,
                     y: obstacle.y,
                     width: obstacle.width,
                     height: obstacle.height,
