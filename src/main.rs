@@ -146,7 +146,9 @@ fn main() -> Result<()> {
 
     let mut rng = rand::rng();
    
-
+    // TODO: Replace the single obstacle with a Vec<Obstacle>, where each Obstacle
+    // represents one spawned cactus cluster (1–3 cacti). Spawn/remove clusters
+    // dynamically as they enter and leave the screen.
     let obstacle = &mut Obstacle{
         x: OBSTACLE_X1 - 10.0, 
         y: GROUND_Y, 
